@@ -1,0 +1,144 @@
+#!/bin/bash
+# Build of yorick & plugins under OSX:
+# 
+# yorick: git version sep 01 works out of the box 
+# (_XOPEN_SOURCE changed to 500 in play/unix/files.c, committed to github)
+# todo: add rlwrap, static link to readline.a (done, in ~/packages/)
+
+rm -rf yorick-2.2 yorick_dir
+
+git clone git://github.com/dhmunro/yorick.git
+cd yorick
+make config
+# to get a yorick build on lion compatible with 10.5, we need to play a few tricks:
+# the problem here is with libX11.dylib.
+sed -i '' -E 's|^Y_CFLAGS=(.*)|Y_CFLAGS=-mmacosx-version-min=10.5 -with-macos-sdk=/Developer/SDKs/MacOSX10.6.sdk |' Make.cfg
+sed -i '' -E 's|^XLIB=(.*)|XLIB=-L/Developer/SDKs/MacOSX10.6.sdk/usr/X11/lib/ |' Make.cfg
+# end of back compatibility tricks
+make
+make install
+cd ..
+export PATH=`pwd`/yorick/relocate/bin:${PATH}
+echo ${PATH}
+which yorick
+
+rm -rf plugins
+mkdir plugins
+cd plugins/
+
+git clone git://github.com/frigaut/yorick-yutils.git
+cd yorick-yutils/
+yorick -batch make.i && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-imutil.git
+cd yorick-imutil/
+yorick -batch make.i && make clean && make TGT=exe install-exe && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-soy.git
+cd yorick-soy/
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/frigaut/yao.git
+cd yao/
+# edit Makefile:
+# PKG_DEPLIBS=/opt/local/lib/libfftw3f.a
+# PKG_CFLAGS=-Wall -I/opt/local/include
+sed -i '' -E 's|^PKG_DEPLIBS=(.*)|PKG_DEPLIBS=/opt/local/lib/libfftw3f.a |' Makefile
+sed -i '' -E 's|^PKG_CFLAGS=(.*)|PKG_CFLAGS=-I/opt/local/include |' Makefile
+sed -i '' -e "s|#![ ]*/usr/bin/env python$|#!/usr/bin/env python2.7|" *.py
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-ml4.git
+cd yorick-ml4/
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-opra.git 
+cd yorick-opra/
+git checkout opra-tomo
+sed -i -e "s|#![ ]*/usr/bin/env python$|#!/usr/bin/env python2.7|" *.py
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-spydr.git 
+cd yorick-spydr/
+sed -i -e "s|#![ ]*/usr/bin/env python$|#!/usr/bin/env python2.7|" *.py
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/frigaut/yorick-hdf5.git
+cd yorick-hdf5/
+# edit Makefile:
+# PKG_DEPLIBS=-lz /opt/local/lib/libhdf5.a
+# PKG_CFLAGS=-I/opt/local/include -D H5_USE_16_API
+sed -i '' -E 's|PKG_DEPLIBS=(.*)|PKG_DEPLIBS=-lz /opt/local/lib/libhdf5.a |' Makefile
+sed -i '' -E 's|PKG_CFLAGS=(.*)|PKG_CFLAGS=-I/opt/local/include -D H5_USE_16_API |' Makefile
+yorick -batch make.i && make clean && make install && cd ..
+
+git clone git://github.com/dhmunro/yorick-mpeg.git
+cd yorick-mpeg/
+yorick -batch make.i
+# edit config.h, add:
+# #define HAVE_OSX 1
+sed -i '' -E 's|#undef HAVE_OSX|#define HAVE_OSX 1 |' config.h
+make clean && make all && make install && cd ..
+
+git clone git://github.com/dhmunro/yorick-z.git
+cd yorick-z/
+./configure
+cat <<EOF >> Makeyorz
+PKG_I=zlib.i png.i jpeg.i
+OBJS=yzlib.o spng.o ypng.o yjpeg.o
+PKG_DEPLIBS=-lz /opt/local/lib/libpng.a /opt/local/lib/libjpeg.a
+PKG_I_START=yorz.i
+ZLIB_INC=
+PNG_INC=-I/opt/local/include
+JPEG_INC=-I/opt/local/include
+AVCODEC_INC=
+EOF
+yorick -batch make.i && make clean && make && make install && cd ..
+
+cp -pr ~/packages/yorick-svipc-0.9.1 .
+cd yorick-svipc-0.9.1/yorick
+yorick -batch make.i && make clean && make install && cd ../..
+
+cp -pr ~/packages/yorick-usleep-0.1.01 .
+cd yorick-usleep-0.1.01
+yorick -batch make.i && make clean && make install && cd ..
+
+# yeti-6.3.2/
+wget http://www-obs.univ-lyon1.fr/labo/perso/eric.thiebaut/files/yeti-6.3.2.tar.bz2
+bunzip2 yeti-6.3.2.tar.bz2 
+tar xvf yeti-6.3.2.tar
+cd yeti-6.3.2
+yorick -batch ./config.i
+#yeti_rgl ne compile pas correctement. Le compiler sans optimisation (pas de -O).
+# change that in Makefile:
+cd yeti
+sed -i '' -E 's|\$\(CFLAGS\) -DYORICK|\$\(CFLAGS\) -O0 -DYORICK |' Makefile
+cd ..
+make all
+cc -I..  -DPLUG_IN -I. -I/Users/frigaut/yorick/include -DYORICK -o yeti_rgl.o -c yeti_rgl.c
+make install
+cd ..
+
+# again to go lower level
+cd ..
+cp -p ~/packages/rlwrap yorick/relocate/bin/.
+cp -p ./yorick.install yorick/relocate/bin/.
+cd yorick/relocate/python
+sed -i '' -e "s|#![ ]*/usr/bin/env python$|#!/usr/bin/env python2.7|" *.py
+cd ../../..
+
+mv yorick yorick_dir
+cp -pr yorick_dir/relocate yorick-2.2
+
+# now we have to package yorick, which includes everything we need to run yorick
+#platypus -a Yorick -c start_yorick -f yorick -o 'None' -i yorick_dir/icons/yicon48.png -V 2.2.00 -u "David Munro" -y -F Yorick.app
+# open PackageManager.app or click on yorick.pmdoc
+# build package
+
+
+
+# yorick-syslog/
+# yorick-ca-1.0/
+# yorick-gl.git/
+# yorick-xft/
+# yorick-usleep-0.1.01/

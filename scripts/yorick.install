@@ -1,0 +1,13 @@
+#!/bin/sh
+if [ $2 != "/" ]; then path=$2"/"; else path=$2; fi 
+shell=`dscl . -read /Users/$USER UserShell | awk '{print $2}'`
+if [ $shell == '/bin/bash' ]; then
+	echo "\n# Added `date \"+%c\"` by the yorick package installer" >> ${HOME}/.profile
+	echo "export PATH=${path}yorick-2.2/bin:"'${PATH}' >> ${HOME}/.profile
+	echo "alias yorick='rlwrap -c yorick'\n" >> ${HOME}/.profile
+elif [ $shell == '/bin/tcsh' ]; then
+	echo "\n# Added `date \"+%c\"` by the yorick package installer" >> ${HOME}/.login
+	echo "setenv PATH ${path}yorick-2.2/bin:"'${PATH}' >> ${HOME}/.login
+	echo "alias yorick 'rlwrap -c yorick'\n" >> ${HOME}/.login
+fi
+
