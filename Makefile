@@ -47,7 +47,7 @@ env:
 # otherwise it clones it from the main repo
 init_update_git =                                       \
 	cd plugins;                                           \
-	if [ -d $(1) ]; then cd $(1); git pull origin master; \
+	if [ -d $(1) ]; then cd $(1); git reset --hard origin/master; \
 	else git clone git://github.com/$(2)/$(1).git; fi
 
 # Targets:
@@ -78,16 +78,15 @@ yorick: env
 	@cd yorick; sed -i '' -E 's|^XINC=(.*)|XINC=$(X11_INC) |' Make.cfg
 	# end of back compatibility tricks
 	# get the xft patch
-	@cd yorick; wget --no-check-certificate https://rawgit.com/frigaut/frigaut-arch-abs-files/master/yorick-git-xft.patch
+	@cd yorick; cp -p ../yorick-git-xft.patch .
 	#wget http://www.maumae.net/yorick/packages/src/yorick-git-xft.patch
 	@cd yorick; patch -p1 < yorick-git-xft.patch
 	# @cd yorick/yorick; sed -i '' -E 's|strncpy\(node|memcpy\(node|' codger.c
 	@cd yorick; make; make install
 	cp -p ./scripts/rlwrap yorick/relocate/bin/.
 	cp -p ./scripts/yorick.install yorick/relocate/bin/.
-	export PATH=`pwd`/yorick/relocate/bin:${PATH}
-	echo ${PATH}
-	which yorick
+	@echo "Add this line to your ~/.bash_profile:"
+	@echo "export PATH=\"`pwd`/yorick/relocate/bin:\$$PATH\""
 
 install: env
 	-rm -rf yorick-$(YORICK_VERSION) yorick.pmdoc
@@ -126,19 +125,23 @@ make_plug:
 
 # PLUGINS, one by one:
 yutils: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-yutils,frigaut)
 	$(MAKE) make_plug PLUG_DIR=yorick-yutils
 
 imutil: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-imutil,frigaut)
 	cd plugins/yorick-imutil; $(YORICK) -batch make.i; make clean; \
 	 make TGT=exe install-exe; make install
 
 soy: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-soy,frigaut)
 	$(MAKE) make_plug PLUG_DIR=yorick-soy
 
 yao: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yao,frigaut)
 	cd plugins/yao; cp Makefile.template Makefile
 	cd plugins/yao; sed -i '' -E 's|^PKG_DEPLIBS=(.*)|PKG_DEPLIBS=$(EXT_PREFIX)/lib/libfftw3f.a |' Makefile
@@ -146,33 +149,39 @@ yao: env
 	$(MAKE) make_plug PLUG_DIR=yao
 
 ml4: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-ml4,frigaut)
 	$(MAKE) make_plug PLUG_DIR=yorick-ml4
 
 opra: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-opra,frigaut)
 	cd plugins/yorick-opra; git checkout opra-tomo
 	rm -rf yorick/relocate/share/opra
 	$(MAKE) make_plug PLUG_DIR=yorick-opra
 
 spydr: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-spydr,frigaut)
 	$(MAKE) make_plug PLUG_DIR=yorick-spydr
 
 
 hdf5: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-hdf5,frigaut)
 	cd plugins/yorick-hdf5; sed -i '' -E 's|PKG_DEPLIBS=(.*)|PKG_DEPLIBS=-lz $(EXT_PREFIX)/lib/libhdf5.a |' Makefile
 	cd plugins/yorick-hdf5; sed -i '' -E 's|PKG_CFLAGS=(.*)|PKG_CFLAGS=-I$(EXT_PREFIX)/include -D H5_USE_16_API |' Makefile
 	$(MAKE) make_plug PLUG_DIR=yorick-hdf5
 
 mpeg: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-mpeg,dhmunro)
 	cd plugins/yorick-mpeg; $(YORICK) -batch make.i
 	cd plugins/yorick-mpeg; sed -i '' -E 's|#undef HAVE_OSX|#define HAVE_OSX 1 |' config.h
 	$(MAKE) make_plug PLUG_DIR=yorick-mpeg
 
 z: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-z,dhmunro)
 	cd plugins/yorick-z; ./configure
 	cd plugins/yorick-z; \
@@ -188,18 +197,30 @@ z: env
 	$(MAKE) make_plug PLUG_DIR=yorick-z
 
 svipc: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yp-svipc,frigaut)
 	cd plugins/yp-svipc/yorick; $(YORICK) -batch make.i; make clean; make install
 
 usleep: env
+	@echo; echo '>>> BUILDING $@'
 	$(call init_update_git,yorick-usleep,frigaut)
 	$(MAKE) make_plug PLUG_DIR=yorick-usleep
 
 yeti: env
+	@echo; echo '>>> BUILDING $@'
 	cd plugins; wget http://cral.univ-lyon1.fr/labo/perso/eric.thiebaut/downloads/yorick/yeti-6.3.3.tar.bz2
 	#cd plugins; wget http://www-obs.univ-lyon1.fr/labo/perso/eric.thiebaut/files/yeti-6.3.2.tar.bz2
 	cd plugins; bunzip2 yeti-6.3.3.tar.bz2; tar xvf yeti-6.3.3.tar
 	cd plugins/yeti-6.3.3; ./configure --yorick=$(YORICK)
 	#yeti_rgl ne compile pas correctement. Le compiler sans optimisation (pas de -O).
 	#cd plugins/yeti-6.3.3/yeti; sed -i '' -E 's|\$\(CFLAGS\) -DYORICK|\$\(CFLAGS\) -O0 -DYORICK |' Makefile
+	cd plugins; rm yeti-6.3.3.tar.bz2
 	cd plugins/yeti-6.3.3; make clean; make all; make install
+
+check: env
+	# check yorick:
+	# cd yorick; make check
+	# DIRECTORY := $(wildcard plugins/*/check.i)
+	# echo $(DIRECTORY)
+	# echo $DIRECTORY
+	# $(foreach DIRECTORY, $(DIRECTORY), $(eval $YORICK $(DIRECTORY)))
