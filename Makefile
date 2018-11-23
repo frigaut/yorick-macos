@@ -84,7 +84,7 @@ yorick: env
 	# @cd yorick/yorick; sed -i '' -E 's|strncpy\(node|memcpy\(node|' codger.c
 	@cd yorick; make; make install
 	cp -p ./scripts/rlwrap yorick/relocate/bin/.
-	cp -p ./scripts/yorick.install yorick/relocate/bin/.
+	# cp -p ./scripts/yorick.install yorick/relocate/bin/.
 	@echo "Add this line to your ~/.bash_profile:"
 	@echo "export PATH=\"`pwd`/yorick/relocate/bin:\$$PATH\""
 
@@ -214,7 +214,7 @@ yeti: env
 	cd plugins/yeti-6.3.3; ./configure --yorick=$(YORICK)
 	#yeti_rgl ne compile pas correctement. Le compiler sans optimisation (pas de -O).
 	#cd plugins/yeti-6.3.3/yeti; sed -i '' -E 's|\$\(CFLAGS\) -DYORICK|\$\(CFLAGS\) -O0 -DYORICK |' Makefile
-	cd plugins; rm yeti-6.3.3.tar.bz2
+	cd plugins; rm yeti-6.3.3.tar
 	cd plugins/yeti-6.3.3; make clean; make all; make install
 
 check: env

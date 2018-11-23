@@ -5,13 +5,13 @@ yorick and plugins installation scripts for macos. Something I should have done 
 
 - Install Xcode from the App Store
 - In Terminal: `xcode-select --install`
-- Install macport (https://www.macports.org/install.php)
-- Open a new terminal (your .bash_profile has been modified to include the macport PATH but you need to open a new terminal for this setting to take effect)
 - Install Xquartz (https://www.xquartz.org/). That's Xorg.
-- Stuff to install from macport:  
+- Install macport (https://www.macports.org/install.php). Alternatively you can probably do the same thing with homebrew, but there will be some more work to change the library path. If you do that, send me an email at francois.rigaut@anu.edu.au.
+- Open a new terminal (your .bash_profile has been modified to include the macport PATH but you need to open a new terminal for this setting to take effect)
+- Packages to install from macport (or equivalent command from homebrew):  
 `sudo port install wget fftw-3 hdf5 libpng jpeg`
-* Get yorick-macos:  
-```
+* Get yorick-macos:
+```bash
 git clone https://github.com/frigaut/yorick-macos.git
 cd yorick-macos
 make yorick
